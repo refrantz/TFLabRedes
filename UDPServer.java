@@ -27,7 +27,9 @@ class UDPServer {
                   String sentence = new String(receivePacket.getData());
                   InetAddress IPAddress = receivePacket.getAddress();
                   int port = receivePacket.getPort();
-                  sendData = "ACK".getBytes();
+                  int seqNum = Integer.parseInt(sentence.split(":")[1].trim())+1;
+                  String sentenceACK = "ACK|seq:"+seqNum;
+                  sendData = sentenceACK.getBytes();
 
                   DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
                   serverSocket.send(sendPacket);
