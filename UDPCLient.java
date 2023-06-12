@@ -4,7 +4,6 @@
 import java.io.*; // classes para input e output streams e
 import java.net.*;// DatagramaSocket,InetAddress,DatagramaPacket
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.zip.CRC32;
@@ -28,6 +27,7 @@ class UDPClient {
       boolean AllACK = true;
       int congestWindow = 20;
       int retransmitCounter = 0;
+      int lastFailedACKSeqNum = 0;
 
 
 
@@ -66,8 +66,6 @@ class UDPClient {
          CRC32 crc = new CRC32();
          crc.update(buffer);
          long checksum = crc.getValue();
-
-         System.out.println(checksum);
 
          // Append the checksum and sequence number to the chunk
          String metadata = String.format("%4d%10d%20d", padding, sequenceNumber, checksum);
@@ -125,7 +123,6 @@ class UDPClient {
       //
 
 
-
       //send packets
 
       sendData = new byte[chunkSize];
@@ -150,38 +147,46 @@ class UDPClient {
 
             try {
                clientSocket.receive(receivePacket);
-           } catch (SocketTimeoutException e) {
-              acresc = 1;
-              AllACK = false;
-              break;
-           }
+            } catch (SocketTimeoutException e) {
+               System.out.println("Timeout");
+               acresc = 1;
+               AllACK = false;
+               break;
+            }
       
            //
             String sentenceACK = new String(receivePacket.getData());
             int ACKSeqNum = Integer.parseInt(sentenceACK.split(":")[1].trim());
+           
             System.out.println(sentenceACK); 
 
+            if(!(ACKSeqNum == sentPackets+1)){
 
-            if(ACKSeqNum == sentPackets){
-
-               AllACK = false;
                i--;
+               AllACK = false;
 
-               retransmitCounter++;
+               if(lastFailedACKSeqNum == ACKSeqNum){
 
-               if (retransmitCounter == 3) {
 
-                  sendData = packets.get(sentPackets);
-                  DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 9876);
-                  clientSocket.send(sendPacket);
-               
-                  // reset duplicate ACK counter
-                  congestWindow /= 2;
-                  retransmitCounter = 0;
-                  break;
+                  System.out.println("Fast retransmit");
+                  retransmitCounter++;
+
+                  if (retransmitCounter == 3) {
+
+                     sendData = packets.get(lastFailedACKSeqNum);
+                     DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 9876);
+                     clientSocket.send(sendPacket);
+                  
+                     // reset duplicate ACK counter
+                     congestWindow /= 2;
+                     retransmitCounter = 0;
+                     break;
+                  }
                }
 
-            }else{
+               lastFailedACKSeqNum = ACKSeqNum;
+
+            }else if(ACKSeqNum == sentPackets+1){
                retransmitCounter=0;
                sentPackets++;
                if (sentPackets >= totalPackets) {

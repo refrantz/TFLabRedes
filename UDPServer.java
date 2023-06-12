@@ -94,10 +94,11 @@ class UDPServer {
             
             if((seqNum == 0 || packetReceived[seqNum-1]) && (checksum == calculatedChecksum)){
 
-               fos.write(sentenceBytes, 0, chunkDataSize-paddingSize); // Only write the data part
+               if(!packetReceived[seqNum]){
+                  fos.write(sentenceBytes, 0, chunkDataSize-paddingSize); // Only write the data part
+                  packetReceived[seqNum] = true;
+               }
 
-               packetReceived[seqNum] = true;
-   
                String sentenceACK = "ACK|seq:"+(seqNum+1);
                sendData = sentenceACK.getBytes();
                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
@@ -117,6 +118,7 @@ class UDPServer {
       }
 
       System.out.println("Connection terminated");
+      fos.close();
       serverSocket.close();
 
    }
