@@ -25,7 +25,14 @@ class UDPServer {
       InetAddress IPAddress = initialPacket.getAddress();
       int port = initialPacket.getPort();
 
-      int totalPackets = Integer.parseInt(new String(initialPacket.getData()).trim().split(":")[1]);
+      String initialMessage = new String(initialPacket.getData()).trim();
+      String[] parts = initialMessage.split("\\|");
+      String sizePart = parts[0];
+      String fileName = parts[1].trim();
+
+      int totalPackets = Integer.parseInt(sizePart.split(":")[1].trim());
+      fileName = fileName.split(":")[1].trim();
+
       Boolean[] packetReceived = new Boolean[totalPackets];
       Arrays.fill(packetReceived, Boolean.FALSE);
 
@@ -42,7 +49,7 @@ class UDPServer {
 
       int lastACKNum = 0;
 
-      FileOutputStream fos = new FileOutputStream("received_gremio.png");
+      FileOutputStream fos = new FileOutputStream("received_" + fileName);
 
       while(Arrays.asList(packetReceived).contains(false)){
             // declara o pacote a ser recebido

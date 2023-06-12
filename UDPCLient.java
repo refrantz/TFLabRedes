@@ -28,6 +28,7 @@ class UDPClient {
       int congestWindow = 20;
       int retransmitCounter = 0;
       int lastFailedACKSeqNum = 0;
+      boolean connected = false;
 
 
 
@@ -97,27 +98,32 @@ class UDPClient {
       // obtem endere�o IP do servidor com o DNS
       InetAddress IPAddress = InetAddress.getByName("localhost");
 
-      sendData = ("Connect with size:" + totalPackets).getBytes();
+      while(!connected){
+         sendData = ("Connect with size:" + totalPackets + "|name:" + fileName).getBytes();
 
-      DatagramPacket initialPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 9876);
+         DatagramPacket initialPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 9876);
 
-      clientSocket.send(initialPacket);
+         clientSocket.send(initialPacket);
 
-      DatagramPacket receiveInitialPacket = new DatagramPacket(receiveData, receiveData.length);
-      
-      try {
-         clientSocket.receive(receiveInitialPacket);
-         String initialConfirm = new String(receiveInitialPacket.getData()).trim();
+         DatagramPacket receiveInitialPacket = new DatagramPacket(receiveData, receiveData.length);
+         
+         try {
+            clientSocket.receive(receiveInitialPacket);
+            String initialConfirm = new String(receiveInitialPacket.getData()).trim();
 
-         if (initialConfirm.equals("Confirm connection")){
-            System.out.println("Connection succeded");
-         }else{
+            if (initialConfirm.equals("Confirm connection")){
+               System.out.println("Connection succeded");
+               connected = true;
+            }else{
+               System.out.println("Connection failed");
+            }
+            
+         } catch (SocketTimeoutException e) {
             System.out.println("Connection failed");
          }
-         
-      } catch (SocketTimeoutException e) {
-         System.out.println("Connection failed");
+
       }
+
 
 
       //
